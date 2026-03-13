@@ -2225,14 +2225,168 @@ class BinanceWebSocketApiApiSpot(object):
     def get_listen_key(self, process_response=None, request_id: str = None, return_response: bool = False,
                        stream_id: str = None, stream_label: str = None) -> Union[str, dict, bool]:
         """
-        Start user data stream (USER_STREAM)
+        Deprecated: Use `subscribe_user_data()` instead.
 
-        Get a listenKey to start a UserDataStream.
+        The `userDataStream.start` method and listenKey-based flow have been removed from the Binance Spot WebSocket
+        API. Use `subscribe_user_data()` which uses the new `userDataStream.subscribe.signature` method.
 
         Official documentation:
 
-            - https://binance-docs.github.io/apidocs/websocket_api/en/#start-user-data-stream-user_stream
+            - https://developers.binance.com/docs/binance-spot-api-docs/websocket-api/user-data-stream-requests
 
+        :param process_response: Provide a function/method to process the received webstream data (callback)
+                                 of this specific request.
+        :type process_response: function
+        :param request_id: Provide a custom id for the request
+        :type request_id: str
+        :param return_response: If `True` the response of the API request is waited for and returned directly.
+                                However, this increases the execution time of the function by the duration until the
+                                response is received from the Binance API.
+        :type return_response: bool
+        :param stream_id: ID of a stream to send the request
+        :type stream_id: str
+        :param stream_label: Label of a stream to send the request. Only used if `stream_id` is not provided!
+        :type stream_label: str
+
+        :return: str, dict, bool
+        """
+        logger.warning("BinanceWebSocketApiApiSpot.get_listen_key() is deprecated for spot. "
+                       "Use subscribe_user_data() instead. The userDataStream.start method and listenKey "
+                       "are no longer supported for Binance Spot.")
+        return self.subscribe_user_data(process_response=process_response,
+                                        request_id=request_id,
+                                        return_response=return_response,
+                                        stream_id=stream_id,
+                                        stream_label=stream_label)
+
+    def subscribe_user_data(self, process_response=None, recv_window: int = None, request_id: str = None,
+                            return_response: bool = False, stream_id: str = None,
+                            stream_label: str = None) -> Union[str, dict, bool]:
+        """
+        Subscribe to user data stream (USER_STREAM)
+
+        Subscribe to user data events on a WebSocket API connection using signature-based authentication.
+
+        Official documentation:
+
+            - https://developers.binance.com/docs/binance-spot-api-docs/websocket-api/user-data-stream-requests#user-data-stream-subscribe
+
+        :param process_response: Provide a function/method to process the received webstream data (callback)
+                                 of this specific request.
+        :type process_response: function
+        :param recv_window: An additional parameter, `recvWindow`, may be sent to specify the number of milliseconds
+                            after timestamp the request is valid for. If `recvWindow` is not sent, it defaults to 5000.
+                            The value cannot be greater than 60000.
+        :type recv_window: int
+        :param request_id: Provide a custom id for the request
+        :type request_id: str
+        :param return_response: If `True` the response of the API request is waited for and returned directly.
+                                However, this increases the execution time of the function by the duration until the
+                                response is received from the Binance API.
+        :type return_response: bool
+        :param stream_id: ID of a stream to send the request
+        :type stream_id: str
+        :param stream_label: Label of a stream to send the request. Only used if `stream_id` is not provided!
+        :type stream_label: str
+
+        :return: str, dict, bool
+
+        Message sent:
+
+        .. code-block:: json
+
+            {
+              "id": "d3df8a22-98ea-4fe0-9f4e-0fcea5d418b7",
+              "method": "userDataStream.subscribe.signature",
+              "params": {
+                "apiKey": "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A",
+                "timestamp": 1747385641636,
+                "signature": "yN1vWpXb+qoZ3/dGiFs9vmpNdV7e3FxkA+BstzbezDKwObcijvk/CVkWxIwMCtCJbP270R0OempYwEpS6rDZCQ=="
+              }
+            }
+
+        Response:
+
+        .. code-block:: json
+
+            {
+              "id": "d3df8a22-98ea-4fe0-9f4e-0fcea5d418b7",
+              "status": 200,
+              "result": {
+                "subscriptionId": 0
+              },
+              "rateLimits": [
+                {
+                  "rateLimitType": "REQUEST_WEIGHT",
+                  "interval": "MINUTE",
+                  "intervalNum": 1,
+                  "limit": 6000,
+                  "count": 2
+                }
+              ]
+            }
+        """
+        if stream_id is None:
+            if stream_label is not None:
+                stream_id = self._manager.get_stream_id_by_label(stream_label=stream_label)
+            else:
+                stream_id = self._manager.get_the_one_active_websocket_api()
+            if stream_id is None:
+                logger.critical(f"BinanceWebSocketApiApiSpot.subscribe_user_data() - error_msg: No `stream_id` "
+                                f"provided or found!")
+                return False
+
+        params = {"apiKey": self._manager.stream_list[stream_id]['api_key'],
+                  "timestamp": self._manager.get_timestamp()}
+
+        if recv_window is not None:
+            params['recvWindow'] = str(recv_window)
+
+        method = "userDataStream.subscribe.signature"
+        api_secret = self._manager.stream_list[stream_id]['api_secret']
+        request_id = self._manager.get_new_uuid_id() if request_id is None else request_id
+        params['signature'] = self._manager.generate_signature(api_secret=api_secret, data=params)
+
+        payload = {"id": request_id,
+                   "method": method,
+                   "params": params}
+
+        logger.debug(f"BinanceWebSocketApiApiSpot.subscribe_user_data() - Created payload: {payload}")
+
+        if self._manager.send_with_stream(stream_id=stream_id, payload=payload) is False:
+            self._manager.add_payload_to_stream(stream_id=stream_id, payload=payload)
+
+        if process_response is not None:
+            with self._manager.process_response_lock:
+                entry = {'callback_function': process_response}
+                self._manager.process_response[request_id] = entry
+
+        if return_response is True:
+            with self._manager.return_response_lock:
+                entry = {'event_return_response': threading.Event()}
+                self._manager.return_response[request_id] = entry
+            self._manager.return_response[request_id]['event_return_response'].wait()
+            with self._manager.return_response_lock:
+                response_value = self._manager.return_response[request_id]['response_value']
+                del self._manager.return_response[request_id]
+            return response_value
+
+        return True
+
+    def unsubscribe_user_data(self, subscription_id: int = None, process_response=None, request_id: str = None,
+                              return_response: bool = False, stream_id: str = None,
+                              stream_label: str = None) -> Union[str, dict, bool]:
+        """
+        Unsubscribe from user data stream (USER_STREAM)
+
+        Close a user data stream subscription. If `subscription_id` is omitted, all subscriptions are closed.
+
+        Official documentation:
+
+            - https://developers.binance.com/docs/binance-spot-api-docs/websocket-api/user-data-stream-requests#user-data-stream-unsubscribe
+
+        :param subscription_id: The subscription ID to close. If omitted, all subscriptions are closed.
+        :type subscription_id: int
         :param process_response: Provide a function/method to process the received webstream data (callback)
                                  of this specific request.
         :type process_response: function
@@ -2254,10 +2408,10 @@ class BinanceWebSocketApiApiSpot(object):
         .. code-block:: json
 
             {
-              "id": "d3df8a61-98ea-4fe0-8f4e-0fcea5d418b0",
-              "method": "userDataStream.start",
+              "id": "d3df8a21-98ea-4fe0-8f4e-0fcea5d418b7",
+              "method": "userDataStream.unsubscribe",
               "params": {
-                "apiKey": "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"
+                "subscriptionId": 0
               }
             }
 
@@ -2266,11 +2420,9 @@ class BinanceWebSocketApiApiSpot(object):
         .. code-block:: json
 
             {
-              "id": "d3df8a61-98ea-4fe0-8f4e-0fcea5d418b0",
+              "id": "d3df8a21-98ea-4fe0-8f4e-0fcea5d418b7",
               "status": 200,
-              "result": {
-                "listenKey": "xs0mRXdAKlIPDRFrlPcw0qI41Eh3ixNntmymGyhrhgqo7L6FuLaWArTD7RLP"
-              },
+              "result": {},
               "rateLimits": [
                 {
                   "rateLimitType": "REQUEST_WEIGHT",
@@ -2288,19 +2440,22 @@ class BinanceWebSocketApiApiSpot(object):
             else:
                 stream_id = self._manager.get_the_one_active_websocket_api()
             if stream_id is None:
-                logger.critical(f"BinanceWebSocketApiApiSpot.get_listen_key() - error_msg: No `stream_id` provided or "
-                                f"found!")
+                logger.critical(f"BinanceWebSocketApiApiSpot.unsubscribe_user_data() - error_msg: No `stream_id` "
+                                f"provided or found!")
                 return False
 
         request_id = self._manager.get_new_uuid_id() if request_id is None else request_id
-        method = "userDataStream.start"
-        params = {"apiKey": self._manager.stream_list[stream_id]['api_key']}
+        method = "userDataStream.unsubscribe"
+        params = {}
+
+        if subscription_id is not None:
+            params['subscriptionId'] = int(subscription_id)
 
         payload = {"id": request_id,
                    "method": method,
                    "params": params}
 
-        logger.debug(f"BinanceWebSocketApiApiSpot.get_listen_key() - Created payload: {payload}")
+        logger.debug(f"BinanceWebSocketApiApiSpot.unsubscribe_user_data() - Created payload: {payload}")
 
         if self._manager.send_with_stream(stream_id=stream_id, payload=payload) is False:
             self._manager.add_payload_to_stream(stream_id=stream_id, payload=payload)

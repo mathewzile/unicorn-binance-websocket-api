@@ -162,8 +162,18 @@ class BinanceWebSocketApiSocket(object):
                                     else:
                                         received_stream_data = received_stream_data_json
                                 else:
-                                    # WS API does not need to get unicornfied, just turn it into a dict:
+                                    # WS API responses: check if this is a user data stream event
                                     received_stream_data = orjson.loads(received_stream_data_json)
+                                    if isinstance(received_stream_data, dict) and 'event' in received_stream_data:
+                                        # User data stream subscription event - unwrap and pass through UnicornFy
+                                        event_data = received_stream_data['event']
+                                        event_json = orjson.dumps(event_data)
+                                        if self.exchange in ("binance.com", "binance.com-testnet"):
+                                            received_stream_data = self.unicorn_fy.binance_com_websocket(event_json)
+                                        elif self.exchange in ("binance.com-futures", "binance.com-futures-testnet"):
+                                            received_stream_data = self.unicorn_fy.binance_com_futures_websocket(event_json)
+                                        else:
+                                            received_stream_data = event_data
                             elif self.output == "dict":
                                 received_stream_data = orjson.loads(received_stream_data_json)
                             else:

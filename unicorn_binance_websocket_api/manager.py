@@ -871,7 +871,8 @@ class BinanceWebSocketApiManager(threading.Thread):
             self.asyncio_queue[stream_id] = asyncio.Queue()
             if (self.stream_list[stream_id]['api'] is False
                     and ("!userData" in self.stream_list[stream_id]['markets']
-                         or "!userData" in self.stream_list[stream_id]['channels'])):
+                         or "!userData" in self.stream_list[stream_id]['channels'])
+                    and self.exchange not in ("binance.com", "binance.com-testnet")):
                 logger.debug(f"BinanceWebSocketApiManager._create_stream_thread({stream_id} - "
                              f"Adding `_ping_listen_key({stream_id})` to asyncio loop ...")
                 loop.create_task(self._ping_listen_key(stream_id=stream_id))
@@ -1810,6 +1811,15 @@ class BinanceWebSocketApiManager(threading.Thread):
                         markets_new.append(str(market).upper())
                     else:
                         markets_new.append(str(market))
+        # Auto-upgrade spot !userData streams to WebSocket API with subscription
+        is_spot_user_data = (self.exchange in ("binance.com", "binance.com-testnet")
+                             and ("!userData" in channels or "!userData" in markets_new)
+                             and api is False)
+        if is_spot_user_data:
+            api = True
+            logger.info(f"BinanceWebSocketApiManager.create_stream() - Spot !userData stream auto-upgraded to "
+                        f"WebSocket API with userDataStream.subscribe.signature")
+
         logger.info(f"BinanceWebSocketApiManager.create_stream({str(channels)}, {str(markets_new)}, {str(stream_label)}"
                     f", {str(stream_buffer_name)}, {str(symbols)}, {str(api)}) with stream_id"
                     f"={stream_id}")
@@ -1832,6 +1842,19 @@ class BinanceWebSocketApiManager(threading.Thread):
                                         process_stream_data=process_stream_data,
                                         process_stream_data_async=process_stream_data_async,
                                         process_asyncio_queue=process_asyncio_queue)
+
+        if is_spot_user_data:
+            # Queue the subscribe payload so it's sent as soon as the WebSocket API connection opens
+            request_id = self.get_new_uuid_id()
+            params = {"apiKey": api_key,
+                      "timestamp": self.get_timestamp()}
+            params['signature'] = self.generate_signature(api_secret=api_secret, data=params)
+            payload = {"id": request_id,
+                       "method": "userDataStream.subscribe.signature",
+                       "params": params}
+            self.stream_list[stream_id]['payload'].append(payload)
+            logger.info(f"BinanceWebSocketApiManager.create_stream() - Queued userDataStream.subscribe.signature "
+                        f"payload for stream_id={stream_id}")
         self.set_socket_is_not_ready(stream_id)
         self.event_loops[stream_id] = None
         thread = threading.Thread(target=self._create_stream_thread,
@@ -4464,7 +4487,7 @@ class BinanceWebSocketApiManager(threading.Thread):
         except KeyError:
             return False
         if delete_listen_key:
-            if self.exchange_type != "dex":
+            if self.exchange_type != "dex" and self.exchange not in ("binance.com", "binance.com-testnet"):
                 try:
                     self.delete_listen_key_by_stream_id(stream_id)
                 except requests.exceptions.ReadTimeout as error_msg:
