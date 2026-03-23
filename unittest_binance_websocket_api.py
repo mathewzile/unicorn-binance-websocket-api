@@ -277,19 +277,19 @@ class TestBinanceComManagerTest(unittest.TestCase):
 
     def test_create_uri_miniticker_regular_com(self):
         self.assertEqual(self.__class__.ubwa.create_websocket_uri(["!miniTicker"], ["arr"]),
-                         'wss://testnet.binance.vision/ws/!miniTicker@arr')
+                         'wss://stream.testnet.binance.vision/ws/!miniTicker@arr')
 
     def test_create_uri_miniticker_reverse_com(self):
         self.assertEqual(self.__class__.ubwa.create_websocket_uri(["arr"], ["!miniTicker"]),
-                         'wss://testnet.binance.vision/ws/!miniTicker@arr')
+                         'wss://stream.testnet.binance.vision/ws/!miniTicker@arr')
 
     def test_create_uri_ticker_regular_com(self):
         self.assertEqual(self.__class__.ubwa.create_websocket_uri(["!ticker"], ["arr"]),
-                         'wss://testnet.binance.vision/ws/!ticker@arr')
+                         'wss://stream.testnet.binance.vision/ws/!ticker@arr')
 
     def test_create_uri_ticker_reverse_com(self):
         self.assertEqual(self.__class__.ubwa.create_websocket_uri(["arr"], ["!ticker"]),
-                         'wss://testnet.binance.vision/ws/!ticker@arr')
+                         'wss://stream.testnet.binance.vision/ws/!ticker@arr')
 
     def test_create_uri_userdata_regular_false_com(self):
         self.assertFalse(self.__class__.ubwa.create_websocket_uri(["!userData"], ["arr"]))
@@ -308,7 +308,7 @@ class TestBinanceComManagerTest(unittest.TestCase):
                                                                       stream_id,
                                                                       self.__class__.binance_com_testnet_api_key,
                                                                       self.__class__.binance_com_testnet_api_secret),
-                             r'wss://testnet.binance.vision/ws-api/v3')
+                             r'wss://ws-api.testnet.binance.vision/ws-api/v3')
 
     def test_create_uri_userdata_reverse_com(self):
         if BINANCE_COM_TESTNET_API_KEY is not None and BINANCE_COM_TESTNET_API_SECRET is not None:
@@ -321,7 +321,7 @@ class TestBinanceComManagerTest(unittest.TestCase):
                                                                       stream_id,
                                                                       self.binance_com_testnet_api_key,
                                                                       self.binance_com_testnet_api_secret),
-                             r'wss://testnet.binance.vision/ws-api/v3')
+                             r'wss://ws-api.testnet.binance.vision/ws-api/v3')
 
     def test_is_exchange_type_cex(self):
         self.assertEqual(self.__class__.ubwa.is_exchange_type("cex"), True)
