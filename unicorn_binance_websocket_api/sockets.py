@@ -134,6 +134,8 @@ class BinanceWebSocketApiSocket(object):
                                         received_stream_data = self.unicorn_fy.binance_com_websocket(received_stream_data_json)
                                     elif self.exchange == "binance.com-testnet":
                                         received_stream_data = self.unicorn_fy.binance_com_websocket(received_stream_data_json)
+                                    elif self.exchange == "binance.com-demo":
+                                        received_stream_data = self.unicorn_fy.binance_com_websocket(received_stream_data_json)
                                     elif self.exchange == "binance.com-margin":
                                         received_stream_data = self.unicorn_fy.binance_com_margin_websocket(received_stream_data_json)
                                     elif self.exchange == "binance.com-margin-testnet":
@@ -168,7 +170,7 @@ class BinanceWebSocketApiSocket(object):
                                         # User data stream subscription event - unwrap and pass through UnicornFy
                                         event_data = received_stream_data['event']
                                         event_json = orjson.dumps(event_data)
-                                        if self.exchange in ("binance.com", "binance.com-testnet"):
+                                        if self.exchange in ("binance.com", "binance.com-testnet", "binance.com-demo"):
                                             received_stream_data = self.unicorn_fy.binance_com_websocket(event_json)
                                         elif self.exchange in ("binance.com-futures", "binance.com-futures-testnet"):
                                             received_stream_data = self.unicorn_fy.binance_com_futures_websocket(event_json)

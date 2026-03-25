@@ -140,8 +140,9 @@ class BinanceWebSocketApiManager(threading.Thread):
                                 `create_stream()`! `How to read from stream_buffer!
                                 <https://oliver-zehentleitner.github.io/unicorn-binance-websocket-api/README.html#and-4-more-lines-to-print-the-receives>`__
     :type process_stream_data_async: Optional[Callable]
-    :param exchange: Select binance.com, binance.com-testnet, binance.com-margin, binance.com-margin-testnet,
-                     binance.com-isolated_margin, binance.com-isolated_margin-testnet, binance.com-futures,
+    :param exchange: Select binance.com, binance.com-testnet, binance.com-demo, binance.com-margin,
+                     binance.com-margin-testnet, binance.com-isolated_margin,
+                     binance.com-isolated_margin-testnet, binance.com-futures,
                      binance.com-futures-testnet, binance.com-coin_futures, binance.us, trbinance.com,
                      binance.org, binance.org-testnet (default: binance.com)
     :type exchange: str
@@ -872,7 +873,7 @@ class BinanceWebSocketApiManager(threading.Thread):
             if (self.stream_list[stream_id]['api'] is False
                     and ("!userData" in self.stream_list[stream_id]['markets']
                          or "!userData" in self.stream_list[stream_id]['channels'])
-                    and self.exchange not in ("binance.com", "binance.com-testnet")):
+                    and self.exchange not in ("binance.com", "binance.com-testnet", "binance.com-demo")):
                 logger.debug(f"BinanceWebSocketApiManager._create_stream_thread({stream_id} - "
                              f"Adding `_ping_listen_key({stream_id})` to asyncio loop ...")
                 loop.create_task(self._ping_listen_key(stream_id=stream_id))
@@ -1812,7 +1813,7 @@ class BinanceWebSocketApiManager(threading.Thread):
                     else:
                         markets_new.append(str(market))
         # Auto-upgrade spot !userData streams to WebSocket API with subscription
-        is_spot_user_data = (self.exchange in ("binance.com", "binance.com-testnet")
+        is_spot_user_data = (self.exchange in ("binance.com", "binance.com-testnet", "binance.com-demo")
                              and ("!userData" in channels or "!userData" in markets_new)
                              and api is False)
         if is_spot_user_data:
@@ -4487,7 +4488,7 @@ class BinanceWebSocketApiManager(threading.Thread):
         except KeyError:
             return False
         if delete_listen_key:
-            if self.exchange_type != "dex" and self.exchange not in ("binance.com", "binance.com-testnet"):
+            if self.exchange_type != "dex" and self.exchange not in ("binance.com", "binance.com-testnet", "binance.com-demo"):
                 try:
                     self.delete_listen_key_by_stream_id(stream_id)
                 except requests.exceptions.ReadTimeout as error_msg:

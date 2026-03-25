@@ -54,6 +54,7 @@ else:
 class Exchanges(str, Enum):
     BINANCE = "binance.com"
     BINANCE_TESTNET = "binance.com-testnet"
+    BINANCE_DEMO = "binance.com-demo"
     BINANCE_MARGIN = "binance.com-margin"
     BINANCE_MARGIN_TESTNET = "binance.com-margin-testnet"
     BINANCE_ISOLATED_MARGIN = "binance.com-isolated_margin"
@@ -71,6 +72,7 @@ DEX_EXCHANGES = [Exchanges.BINANCE_ORG, Exchanges.BINANCE_ORG_TESTNET]
 CEX_EXCHANGES = [
     Exchanges.BINANCE,
     Exchanges.BINANCE_TESTNET,
+    Exchanges.BINANCE_DEMO,
     Exchanges.BINANCE_MARGIN,
     Exchanges.BINANCE_MARGIN_TESTNET,
     Exchanges.BINANCE_ISOLATED_MARGIN,
@@ -88,6 +90,7 @@ CEX_EXCHANGES = [
 CONNECTION_SETTINGS = {
     Exchanges.BINANCE: (1024, "wss://stream.binance.com:9443/", "wss://ws-api.binance.com/ws-api/v3"),
     Exchanges.BINANCE_TESTNET: (1024, "wss://stream.testnet.binance.vision/", "wss://ws-api.testnet.binance.vision/ws-api/v3"),
+    Exchanges.BINANCE_DEMO: (1024, "wss://demo-stream.binance.com:9443/", "wss://demo-ws-api.binance.com/ws-api/v3"),
     Exchanges.BINANCE_MARGIN: (1024, "wss://stream.binance.com:9443/", None),
     Exchanges.BINANCE_MARGIN_TESTNET: (1024, "wss://stream.testnet.binance.vision/", None),
     Exchanges.BINANCE_ISOLATED_MARGIN: (1024, "wss://stream.binance.com:9443/", None),

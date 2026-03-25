@@ -152,7 +152,7 @@ class BinanceWebSocketApiRestclient(object):
                     result = self.ubra.futures_coin_stream_close(listenKey=self.stream_list[stream_id]['listen_key'],
                                                                  throw_exception=False,
                                                                  **kwargs)
-                elif self.exchange in ("binance.com", "binance.com-testnet"):
+                elif self.exchange in ("binance.com", "binance.com-testnet", "binance.com-demo"):
                     logger.info(f"BinanceWebSocketApiRestclient.delete_listen_key() - Spot no longer uses "
                                 f"listenKey, skipping delete for stream_id='{stream_id}'")
                     self.stream_list[stream_id]['listen_key'] = None
@@ -262,7 +262,7 @@ class BinanceWebSocketApiRestclient(object):
                     logger.critical(f"BinanceWebSocketApiRestclient.get_listen_key() - error: 8 - "
                                     f"error_msg: {error_msg} - Can not acquire listen_key for coin futures!!")
                     return None, None
-            elif self.exchange in ("binance.com", "binance.com-testnet"):
+            elif self.exchange in ("binance.com", "binance.com-testnet", "binance.com-demo"):
                 logger.info(f"BinanceWebSocketApiRestclient.get_listen_key() - Spot no longer uses listenKey. "
                             f"Use the WebSocket API with api.spot.subscribe_user_data() instead.")
                 return None, None
@@ -341,7 +341,7 @@ class BinanceWebSocketApiRestclient(object):
                 result = self.ubra.futures_stream_keepalive(listenKey=self.stream_list[stream_id]['listen_key'],
                                                             throw_exception=False,
                                                             **kwargs)
-            elif self.exchange in ("binance.com", "binance.com-testnet"):
+            elif self.exchange in ("binance.com", "binance.com-testnet", "binance.com-demo"):
                 logger.info(f"BinanceWebSocketApiRestclient.keepalive_listen_key() - Spot no longer uses "
                             f"listenKey, skipping keepalive for stream_id='{stream_id}'")
                 return None, None
